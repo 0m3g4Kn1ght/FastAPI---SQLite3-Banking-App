@@ -1,4 +1,4 @@
-# 💰 Simple Banking API using FastAPI & SQLite3
+# Simple Banking API using FastAPI & SQLite3
 
 This is a lightweight banking API built with **FastAPI** and **SQLite3**. It allows users to:
 
@@ -9,47 +9,41 @@ This is a lightweight banking API built with **FastAPI** and **SQLite3**. It all
 
 ---
 
-## 🚀 Features
+## Features
 
-- ✅ Create user accounts
-- ✅ Deposit and withdraw funds
-- ✅ Transfer money between accounts
-- ✅ Check current balance
-- 🗄️ SQLite3 database (no external dependencies)
+- Create user accounts
+- Deposit and withdraw funds
+- Transfer money between accounts
+- Check current balance
+- SQLite3 database (no external dependencies)
 
 ---
 
-## 🛠️ Requirements
+## Requirements
 
 - Python 3.7+
 - FastAPI
 - Uvicorn
 
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 .
 ├── main.py         # FastAPI application
-├── run.py          # Entry point to start the server
-└── requirements.txt
+├── db.py          # SQLite3 Database
+└── bank.db
 ```
 
 ---
 
-## ▶️ Running the App
+## ▶Running the App
 
 Start the server using:
 
 ```bash
-python run.py
+python -m uvicorn main:app --reload
 ```
 
 This will start the server at:
@@ -65,7 +59,7 @@ Explore the API docs at:
 
 ---
 
-## 📬 API Endpoints
+## API Endpoints
 
 | Method | Endpoint          | Description                     |
 |--------|-------------------|---------------------------------|
@@ -77,13 +71,13 @@ Explore the API docs at:
 
 ---
 
-## 📦 Example JSON Requests
+## Example JSON Requests
 
 ### Create Account
 ```json
 POST /create
 {
-  "name": "Alice"
+  "name": "Ashwin"
 }
 ```
 
@@ -92,7 +86,7 @@ POST /create
 POST /deposit
 {
   "account_id": 1,
-  "amount": 500
+  "amount": 60000
 }
 ```
 
@@ -117,12 +111,6 @@ POST /transfer
 
 ---
 
-## 🧾 License
+## License
 
-MIT License — use freely for learning, testing, or extending!
-
----
-
-## 🤝 Contributions
-
-Contributions, improvements, and suggestions are welcome!
+Apache-2.0 License — use freely for learning, testing, or extending!
