@@ -71,6 +71,8 @@ def transfer_funds(data: Transfer):
         raise HTTPException(status_code=404, detail="Account not found")
     if data.amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")
+    if data.amount > from_acc[2]:
+        raise HTTPException(status_code=400, detail="Insufficient funds")
     try:
         transfer_money(data.from_id, data.to_id, data.amount)
         return {"message": f"Transfer of {data.amount} from '{from_acc[1]}' to '{to_acc[1]}' successful"}

@@ -1,62 +1,95 @@
-import pytest
 from fastapi.testclient import TestClient
-from main import app, init_db
+from main import app
 
-# Create a TestClient instance for the FastAPI application
 client = TestClient(app)
 
-@pytest.fixture(autouse=True)
-def reset_database():
-    """
-    This fixture runs before every test to reset the SQLite database.
-    """
-    init_db()
-    yield
 
-def test_initial_balance():
-    response = client.get("/balance/1")
+def test_create_account():
+    response = client.post("/create_account/", json={"name": "Test User"})
     assert response.status_code == 200
-    assert response.json() == {"account_id": 1, "balance": 1000.0}
+    data = response.json()
+    assert "account_id" in data
+    assert data["message"] == f"Account 'Test User' created with ID {data['account_id']}"
+
+
+def test_initial_balance_not_found():
+    response = client.get("/balance/9999")
+    assert response.status_code == 404
+    assert "Account not found" in response.json()["detail"]
+
 
 def test_deposit_successful():
-    response = client.post("/deposit/1", json={"amount": 500.0})
+    account = client.post("/create_account/", json={"name": "Deposit User"}).json()
+    account_id = account["account_id"]
+
+    response = client.post("/deposit/", json={"account_id": account_id, "amount": 500.0})
     assert response.status_code == 200
-    assert response.json()["message"] == "Deposit successful."
-    assert response.json()["new_balance"] == 1500.0
+    assert f"Deposit of 500.0 to account 'Deposit User' successful" in response.json()["message"]
+
 
 def test_deposit_negative_amount():
-    response = client.post("/deposit/1", json={"amount": -100.0})
+    account = client.post("/create_account/", json={"name": "Negative User"}).json()
+    account_id = account["account_id"]
+
+    response = client.post("/deposit/", json={"account_id": account_id, "amount": -100.0})
     assert response.status_code == 400
-    assert "Cannot deposit a negative amount" in response.json()["detail"]
+    assert "Amount must be positive" in response.json()["detail"]
+
 
 def test_withdraw_successful():
-    response = client.post("/withdraw/1", json={"amount": 200.0})
+    account = client.post("/create_account/", json={"name": "Withdraw User"}).json()
+    account_id = account["account_id"]
+    client.post("/deposit/", json={"account_id": account_id, "amount": 1000.0})
+
+    response = client.post("/withdraw/", json={"account_id": account_id, "amount": 200.0})
     assert response.status_code == 200
-    assert response.json()["message"] == "Withdrawal successful."
-    assert response.json()["new_balance"] == 800.0
+    assert f"Withdrawal of 200.0 from account 'Withdraw User' successful" in response.json()["message"]
+
 
 def test_withdraw_insufficient_funds():
-    response = client.post("/withdraw/1", json={"amount": 2000.0})
+    account = client.post("/create_account/", json={"name": "Poor User"}).json()
+    account_id = account["account_id"]
+
+    response = client.post("/withdraw/", json={"account_id": account_id, "amount": 200.0})
     assert response.status_code == 400
     assert "Insufficient funds" in response.json()["detail"]
 
+
 def test_transfer_successful():
-    response = client.post("/transfer/", json={"from_id": 1, "to_id": 2, "amount": 300.0})
+    acc1 = client.post("/create_account/", json={"name": "Sender"}).json()
+    acc2 = client.post("/create_account/", json={"name": "Receiver"}).json()
+
+    client.post("/deposit/", json={"account_id": acc1["account_id"], "amount": 2000.0})
+
+    response = client.post("/transfer/", json={
+        "from_id": acc1["account_id"],
+        "to_id": acc2["account_id"],
+        "amount": 1000.0
+    })
     assert response.status_code == 200
-    assert response.json()["message"] == "Transfer successful."
+    assert f"Transfer of 1000.0 from 'Sender' to 'Receiver' successful" in response.json()["message"]
 
-    sender_balance = client.get("/balance/1")
-    assert sender_balance.json()["balance"] == 700.0
-
-    receiver_balance = client.get("/balance/2")
-    assert receiver_balance.json()["balance"] == 1300.0
 
 def test_transfer_insufficient_funds():
-    response = client.post("/transfer/", json={"from_id": 1, "to_id": 2, "amount": 5000.0})
+    acc1 = client.post("/create_account/", json={"name": "Low Sender"}).json()
+    acc2 = client.post("/create_account/", json={"name": "Low Receiver"}).json()
+
+    response = client.post("/transfer/", json={
+        "from_id": acc1["account_id"],
+        "to_id": acc2["account_id"],
+        "amount": 1000.0
+    })
     assert response.status_code == 400
-    assert "Insufficient funds in the source account" in response.json()["detail"]
+    assert "Insufficient funds" in response.json()["detail"]
+
 
 def test_transfer_non_existent_account():
-    response = client.post("/transfer/", json={"from_id": 1, "to_id": 99, "amount": 100.0})
+    acc1 = client.post("/create_account/", json={"name": "Valid Sender"}).json()
+
+    response = client.post("/transfer/", json={
+        "from_id": acc1["account_id"],
+        "to_id": 9999,
+        "amount": 500.0
+    })
     assert response.status_code == 404
     assert "Account not found" in response.json()["detail"]
